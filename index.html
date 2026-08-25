@@ -19,15 +19,35 @@
 </head>
 <body>
 
-    <h1>Kids English Learning</h1>
+    <div class="container">
 
-    <p>Learn English in a fun and simple way.</p>
+        <h1>🌟 Kids English Learning</h1>
 
-    <h2>Choose a topic</h2>
+        <p>Learn English in a fun and simple way.</p>
 
-    <button>Animals</button>
-    <button>Fruits</button>
-    <button>Colors</button>
+        <h2>Choose a topic</h2>
+
+        <div class="topics">
+
+            <button onclick="showTopic('animals')">
+                🐶 Animals
+            </button>
+
+            <button onclick="showTopic('fruits')">
+                🍎 Fruits
+            </button>
+
+            <button onclick="showTopic('colors')">
+                🎨 Colors
+            </button>
+
+        </div>
+
+        <div id="word-area"></div>
+
+    </div>
+
+    <script src="script.js"></script>
 
 </body>
 
