@@ -4,7 +4,11 @@ Android app for live preview of a USB UVC camera, full-screen, offline-first, wi
 Target: Samsung Galaxy Note 20 Ultra (USB OTG, UVC camera).
 Stack: Kotlin, Jetpack Compose, DroidUVC 0.2.1.
 
-## Build
+## Automated APK build
+GitHub Actions builds the debug APK on every push to `build/usb-camera-autoview-1.0`.
+The workflow artifact is named `USB-Camera-AutoView-debug` and contains `app-debug.apk`.
+
+## Local build
 JDK 17, Android SDK 35, Gradle 8.9:
 `gradle :app:assembleDebug`
 
