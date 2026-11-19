@@ -18,8 +18,9 @@ jobs:
           gradle-version: "8.9"
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses >/dev/null
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          SDKMANAGER="${ANDROID_HOME:-/usr/local/lib/android/sdk}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
       - name: Build debug APK
         working-directory: usb-camera-autoview
         run: gradle :app:assembleDebug
