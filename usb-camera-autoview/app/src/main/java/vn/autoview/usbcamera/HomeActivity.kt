@@ -1,9 +1,13 @@
 package vn.autoview.usbcamera
 
+import android.app.role.RoleManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,18 +27,37 @@ import androidx.compose.ui.unit.sp
 private data class LaunchableApp(val label: String, val packageName: String, val className: String)
 
 class HomeActivity : ComponentActivity() {
+    private val homeRoleRequest = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        setContent { AutoViewHome(
-            onCamera = { startActivity(Intent(this, MainActivity::class.java)) },
-            onApps = { loadLaunchableApps() },
-            onLaunchApp = { app ->
-                val intent = packageManager.getLaunchIntentForPackage(app.packageName)
-                if (intent != null) startActivity(intent)
-            },
-            onSettings = { startActivity(Intent(android.provider.Settings.ACTION_HOME_SETTINGS)) }
-        ) }
+        setContent {
+            AutoViewHome(
+                onCamera = { startActivity(Intent(this, MainActivity::class.java)) },
+                onApps = { loadLaunchableApps() },
+                onLaunchApp = { app ->
+                    val intent = packageManager.getLaunchIntentForPackage(app.packageName)
+                    if (intent != null) startActivity(intent)
+                },
+                onSetDefaultHome = { requestDefaultHome() }
+            )
+        }
+    }
+
+    private fun requestDefaultHome() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roleManager = getSystemService(RoleManager::class.java)
+            if (roleManager != null && roleManager.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                if (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    homeRoleRequest.launch(roleManager.createRequestRoleIntent(RoleManager.ROLE_HOME))
+                }
+                return
+            }
+        }
+        startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
     }
 
     private fun loadLaunchableApps(): List<LaunchableApp> {
@@ -59,7 +82,7 @@ private fun AutoViewHome(
     onCamera: () -> Unit,
     onApps: () -> List<LaunchableApp>,
     onLaunchApp: (LaunchableApp) -> Unit,
-    onSettings: () -> Unit
+    onSetDefaultHome: () -> Unit
 ) {
     var showApps by remember { mutableStateOf(false) }
     var apps by remember { mutableStateOf(emptyList<LaunchableApp>()) }
@@ -72,9 +95,11 @@ private fun AutoViewHome(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("USB CAMERA AUTOVIEW", color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Bold)
-                    Text(if (showApps) "ỨNG DỤNG ĐÃ CÀI" else "MÀN HÌNH CHÍNH", color = Color(0xFF9EADB9), fontSize = 12.sp)
+                    Text(if (showApps) "ỨNG DỤNG ĐÃ CÀI" else "MÀN HÌNH CHÍNH – CHẾ ĐỘ NGANG", color = Color(0xFF9EADB9), fontSize = 12.sp)
                 }
-                TextButton(onClick = onSettings) { Text("Cài đặt Home", color = Color(0xFFB9D8F2)) }
+                TextButton(onClick = onSetDefaultHome) {
+                    Text("ĐẶT LÀM HOME MẶC ĐỊNH", color = Color(0xFFB9D8F2))
+                }
             }
             if (!showApps) {
                 Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(22.dp)) {
@@ -84,6 +109,10 @@ private fun AutoViewHome(
                         showApps = true
                     }
                 }
+                Text(
+                    "Sau khi đặt AutoView làm Home mặc định, nhấn nút Home để quay về màn hình này.",
+                    color = Color(0xFF9EADB9), fontSize = 12.sp
+                )
             } else {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text("Chọn ứng dụng để mở", color = Color.White, modifier = Modifier.weight(1f))
