@@ -199,8 +199,8 @@ private fun CameraApp() {
                                     .putBoolean(KEY_HAS_PREVIOUS, true)
                                     .apply()
                             }
-                            Settings.System.putInt(Settings.System.ACCELEROMETER_ROTATION, 0)
-                            Settings.System.putInt(Settings.System.USER_ROTATION, 1)
+                            Settings.System.putInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0)
+                            Settings.System.putInt(context.contentResolver, Settings.System.USER_ROTATION, 1)
                         } else if (prefs.getBoolean(KEY_HAS_PREVIOUS, false)) {
                             Settings.System.putInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, prefs.getInt(KEY_PREV_ACCEL, 1))
                             Settings.System.putInt(context.contentResolver, Settings.System.USER_ROTATION, prefs.getInt(KEY_PREV_ROTATION, 0))
