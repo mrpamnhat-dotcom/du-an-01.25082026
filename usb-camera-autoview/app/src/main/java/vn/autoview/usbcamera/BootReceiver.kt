@@ -8,6 +8,10 @@ import android.util.Log
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
+        // Re-apply the saved system-wide landscape preference after reboot.
+        // The rotation settings normally persist themselves; this also repairs
+        // devices/ROMs that reset USER_ROTATION during startup.
+        applyPersistentLandscape(context)
         try {
             context.startActivity(
                 Intent(context, MainActivity::class.java).apply {
