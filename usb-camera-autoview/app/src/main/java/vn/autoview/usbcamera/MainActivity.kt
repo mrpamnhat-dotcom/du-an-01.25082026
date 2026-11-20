@@ -65,6 +65,27 @@ private const val KEY_PREV_ACCEL = "previous_accelerometer_rotation"
 private const val KEY_PREV_ROTATION = "previous_user_rotation"
 private const val KEY_HAS_PREVIOUS = "has_previous_rotation"
 
+/**
+ * Applies a persistent system-wide landscape preference. Android stores these
+ * settings outside the app process, so Home/other apps remain landscape after
+ * AutoView is closed. No foreground service is needed to keep this setting.
+ */
+internal fun applyPersistentLandscape(context: Context) {
+    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    if (!prefs.getBoolean(KEY_FORCE_LANDSCAPE, false) || !Settings.System.canWrite(context)) return
+    runCatching {
+        if (!prefs.getBoolean(KEY_HAS_PREVIOUS, false)) {
+            prefs.edit()
+                .putInt(KEY_PREV_ACCEL, Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1))
+                .putInt(KEY_PREV_ROTATION, Settings.System.getInt(context.contentResolver, Settings.System.USER_ROTATION, 0))
+                .putBoolean(KEY_HAS_PREVIOUS, true)
+                .commit()
+        }
+        Settings.System.putInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0)
+        Settings.System.putInt(context.contentResolver, Settings.System.USER_ROTATION, 1)
+    }
+}
+
 private val GuideGreen = Color(0xFF22D66B)
 private val GuideYellow = Color(0xFFFFD52A)
 private val GuideRed = Color(0xFFFF4545)
@@ -122,20 +143,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun applyGlobalLandscapeIfEnabled() {
-        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_FORCE_LANDSCAPE, false) && Settings.System.canWrite(this)) {
-            runCatching {
-                if (!prefs.getBoolean(KEY_HAS_PREVIOUS, false)) {
-                    prefs.edit()
-                        .putInt(KEY_PREV_ACCEL, Settings.System.getInt(contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1))
-                        .putInt(KEY_PREV_ROTATION, Settings.System.getInt(contentResolver, Settings.System.USER_ROTATION, 0))
-                        .putBoolean(KEY_HAS_PREVIOUS, true)
-                        .apply()
-                }
-                Settings.System.putInt(contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0)
-                Settings.System.putInt(contentResolver, Settings.System.USER_ROTATION, 1)
-            }
-        }
+        applyPersistentLandscape(this)
     }
 
     @Suppress("DEPRECATION")
@@ -256,7 +264,7 @@ private fun SettingsScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Xoay ngang toàn điện thoại", color = Color.White)
-                Text("Cần cấp quyền sửa đổi cài đặt hệ thống Android", color = Color.LightGray, fontSize = 12.sp)
+                Text("Giữ ngang cả Home và ứng dụng khác; trạng thái được lưu ở Android, không cần AutoView chạy nền. Launcher phải hỗ trợ xoay ngang. Cần cấp quyền sửa đổi cài đặt hệ thống.", color = Color.LightGray, fontSize = 12.sp)
             }
             Switch(checked = forceLandscape, onCheckedChange = onForceLandscapeChange)
         }
