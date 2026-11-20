@@ -252,7 +252,7 @@ private fun SettingsScreen(
 @Composable
 private fun GuideEditor(guide: GuideConfig, onGuideChange: (GuideConfig) -> Unit) {
     Box(
-        modifier = Modifier.fillMaxWidth().weight(1f).background(Color(0xFF202A33), RoundedCornerShape(12.dp)),
+        modifier = Modifier.fillMaxWidth().height(280.dp).background(Color(0xFF202A33), RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center
     ) {
         GuideOverlay(
