@@ -60,6 +60,9 @@ private const val PREFS = "autoview_settings"
 private const val KEY_MIRROR = "mirror"
 private const val KEY_GUIDE = "guide_config"
 private const val KEY_FORCE_LANDSCAPE = "force_landscape"
+private const val KEY_PREV_ACCEL = "previous_accelerometer_rotation"
+private const val KEY_PREV_ROTATION = "previous_user_rotation"
+private const val KEY_HAS_PREVIOUS = "has_previous_rotation"
 
 private val GuideGreen = Color(0xFF22D66B)
 private val GuideYellow = Color(0xFFFFD52A)
@@ -119,10 +122,15 @@ class MainActivity : ComponentActivity() {
 
     private fun applyGlobalLandscapeIfEnabled() {
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_FORCE_LANDSCAPE, false) &&
-            Settings.System.canWrite(this)
-        ) {
+        if (prefs.getBoolean(KEY_FORCE_LANDSCAPE, false) && Settings.System.canWrite(this)) {
             runCatching {
+                if (!prefs.getBoolean(KEY_HAS_PREVIOUS, false)) {
+                    prefs.edit()
+                        .putInt(KEY_PREV_ACCEL, Settings.System.getInt(contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1))
+                        .putInt(KEY_PREV_ROTATION, Settings.System.getInt(contentResolver, Settings.System.USER_ROTATION, 0))
+                        .putBoolean(KEY_HAS_PREVIOUS, true)
+                        .apply()
+                }
                 Settings.System.putInt(Settings.System.ACCELEROMETER_ROTATION, 0)
                 Settings.System.putInt(Settings.System.USER_ROTATION, 1)
             }
@@ -173,18 +181,29 @@ private fun CameraApp() {
             onMirrorChange = { mirror = it },
             forceLandscape = forceLandscape,
             onForceLandscapeChange = { enabled ->
+                forceLandscape = enabled
                 if (enabled && !Settings.System.canWrite(context)) {
                     val intent = Intent(
                         Settings.ACTION_MANAGE_WRITE_SETTINGS,
                         Uri.parse("package:${context.packageName}")
                     ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
-                } else {
-                    forceLandscape = enabled
-                    if (enabled && Settings.System.canWrite(context)) {
-                        runCatching {
+                } else if (Settings.System.canWrite(context)) {
+                    runCatching {
+                        if (enabled) {
+                            if (!prefs.getBoolean(KEY_HAS_PREVIOUS, false)) {
+                                prefs.edit()
+                                    .putInt(KEY_PREV_ACCEL, Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1))
+                                    .putInt(KEY_PREV_ROTATION, Settings.System.getInt(context.contentResolver, Settings.System.USER_ROTATION, 0))
+                                    .putBoolean(KEY_HAS_PREVIOUS, true)
+                                    .apply()
+                            }
                             Settings.System.putInt(Settings.System.ACCELEROMETER_ROTATION, 0)
                             Settings.System.putInt(Settings.System.USER_ROTATION, 1)
+                        } else if (prefs.getBoolean(KEY_HAS_PREVIOUS, false)) {
+                            Settings.System.putInt(Settings.System.ACCELEROMETER_ROTATION, prefs.getInt(KEY_PREV_ACCEL, 1))
+                            Settings.System.putInt(Settings.System.USER_ROTATION, prefs.getInt(KEY_PREV_ROTATION, 0))
+                            prefs.edit().putBoolean(KEY_HAS_PREVIOUS, false).apply()
                         }
                     }
                 }
