@@ -385,8 +385,21 @@ private fun CameraDevicePreview(
     }
 }
 
+/**
+ * Mirrors the camera image like a physical mirror: left and right are swapped.
+ * Keep both vertical scale and all rotation angles unchanged so the image is
+ * never flipped top-to-bottom or rotated by this setting.
+ */
 private fun Modifier.graphicsLayerCompatMirror(): Modifier =
-    this.then(Modifier.graphicsLayer(scaleX = -1f, scaleY = 1f))
+    this.then(
+        Modifier.graphicsLayer {
+            scaleX = -1f
+            scaleY = 1f
+            rotationX = 0f
+            rotationY = 0f
+            rotationZ = 0f
+        }
+    )
 
 @Composable
 private fun GuideOverlay(
