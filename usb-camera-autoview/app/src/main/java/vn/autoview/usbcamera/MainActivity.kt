@@ -474,28 +474,42 @@ private fun GuideOverlay(
 
 private fun guideHandles(g: GuideConfig, w: Float, h: Float): List<Offset> {
     fun p(x: Float, y: Float) = Offset(x * w, y * h)
-    val left1 = p(g.leftTopX + (g.leftBottomX - g.leftTopX) * g.firstDivider, g.leftTopY + (g.leftBottomY - g.leftTopY) * g.firstDivider)
-    val right1 = p(g.rightTopX + (g.rightBottomX - g.rightTopX) * g.firstDivider, g.rightTopY + (g.rightBottomY - g.rightTopY) * g.firstDivider)
-    val left2 = p(g.leftTopX + (g.leftBottomX - g.leftTopX) * g.secondDivider, g.leftTopY + (g.leftBottomY - g.leftTopY) * g.secondDivider)
-    val right2 = p(g.rightTopX + (g.rightBottomX - g.rightTopX) * g.secondDivider, g.rightTopY + (g.rightBottomY - g.rightTopY) * g.secondDivider)
+    fun xAtY(a: Offset, b: Offset, y: Float): Float {
+        val dy = b.y - a.y
+        val t = if (kotlin.math.abs(dy) < 0.001f) 0f else ((y - a.y) / dy).coerceIn(0f, 1f)
+        return a.x + (b.x - a.x) * t
+    }
+    val lt = p(g.leftTopX, g.leftTopY)
+    val rt = p(g.rightTopX, g.rightTopY)
+    val lb = p(g.leftBottomX, g.leftBottomY)
+    val rb = p(g.rightBottomX, g.rightBottomY)
+    val firstY = (lt.y + (lb.y - lt.y) * g.firstDivider + rt.y + (rb.y - rt.y) * g.firstDivider) / 2f
+    val secondY = (lt.y + (lb.y - lt.y) * g.secondDivider + rt.y + (rb.y - rt.y) * g.secondDivider) / 2f
+    // Each divider has two linked handles, one on each rail. Dragging either
+    // handle moves the shared divider level and therefore both junctions.
     return listOf(
-        p(g.leftTopX, g.leftTopY), p(g.rightTopX, g.rightTopY),
-        p(g.leftBottomX, g.leftBottomY), p(g.rightBottomX, g.rightBottomY),
-        Offset((left1.x + right1.x) / 2f, (left1.y + right1.y) / 2f),
-        Offset((left2.x + right2.x) / 2f, (left2.y + right2.y) / 2f)
+        lt, rt, lb, rb,
+        Offset(xAtY(lt, lb, firstY), firstY),
+        Offset(xAtY(rt, rb, firstY), firstY),
+        Offset(xAtY(lt, lb, secondY), secondY),
+        Offset(xAtY(rt, rb, secondY), secondY)
     )
 }
 
 private fun updateGuideHandle(g: GuideConfig, index: Int, dx: Float, dy: Float): GuideConfig {
     val clampX: (Float) -> Float = { it.coerceIn(0.02f, 0.98f) }
     val clampY: (Float) -> Float = { it.coerceIn(0.04f, 0.97f) }
+    // Divider handles are linked in pairs. Either left or right handle adjusts
+    // the same divider parameter, so the opposite junction follows immediately.
+    val averageRailHeight = ((g.leftBottomY - g.leftTopY) + (g.rightBottomY - g.rightTopY)) / 2f
+    val dividerDelta = if (kotlin.math.abs(averageRailHeight) < 0.001f) 0f else dy / averageRailHeight
     return when (index) {
         0 -> g.copy(leftTopX = clampX(g.leftTopX + dx), leftTopY = clampY(g.leftTopY + dy))
         1 -> g.copy(rightTopX = clampX(g.rightTopX + dx), rightTopY = clampY(g.rightTopY + dy))
         2 -> g.copy(leftBottomX = clampX(g.leftBottomX + dx), leftBottomY = clampY(g.leftBottomY + dy))
         3 -> g.copy(rightBottomX = clampX(g.rightBottomX + dx), rightBottomY = clampY(g.rightBottomY + dy))
-        4 -> g.copy(firstDivider = (g.firstDivider + dy).coerceIn(0.12f, g.secondDivider - 0.08f))
-        5 -> g.copy(secondDivider = (g.secondDivider + dy).coerceIn(g.firstDivider + 0.08f, 0.88f))
+        4, 5 -> g.copy(firstDivider = (g.firstDivider + dividerDelta).coerceIn(0.12f, g.secondDivider - 0.08f))
+        6, 7 -> g.copy(secondDivider = (g.secondDivider + dividerDelta).coerceIn(g.firstDivider + 0.08f, 0.88f))
         else -> g
     }
 }
