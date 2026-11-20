@@ -1,5 +1,5 @@
-# USB Camera AutoView 1.0
-Android app for live preview of a USB UVC camera, full-screen, offline-first, with boot auto-launch attempt.
+# USB Camera AutoView 1.1
+Android app for full-frame USB UVC preview, adjustable parking guide overlay, horizontal image flip, optional system-wide landscape mode, and boot auto-launch attempt.
 
 Target: Samsung Galaxy Note 20 Ultra (USB OTG, UVC camera).
 Stack: Kotlin, Jetpack Compose, DroidUVC 0.2.1.
