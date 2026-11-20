@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -386,15 +387,19 @@ private fun GuideOverlay(
     modifier: Modifier = Modifier,
     onGuideChange: (GuideConfig) -> Unit = {}
 ) {
+    val latestGuide = rememberUpdatedState(guide)
     Canvas(
-        modifier = modifier.pointerInput(guide, editing) {
+        modifier = modifier.pointerInput(editing) {
             if (editing) {
                 var activeHandle = -1
                 detectDragGestures(
                     onDragStart = { start ->
-                        val handles = guideHandles(guide, size.width.toFloat(), size.height.toFloat())
-                        activeHandle = handles.indices.minByOrNull { i ->
+                        val handles = guideHandles(latestGuide.value, size.width.toFloat(), size.height.toFloat())
+                        val nearest = handles.indices.minByOrNull { i ->
                             hypot(handles[i].x - start.x, handles[i].y - start.y)
+                        }
+                        activeHandle = nearest?.takeIf {
+                            hypot(handles[it].x - start.x, handles[it].y - start.y) <= 80f
                         } ?: -1
                     },
                     onDrag = { change, drag ->
@@ -402,7 +407,7 @@ private fun GuideOverlay(
                         if (activeHandle >= 0) {
                             val dx = drag.x / size.width
                             val dy = drag.y / size.height
-                            onGuideChange(updateGuideHandle(guide, activeHandle, dx, dy))
+                            onGuideChange(updateGuideHandle(latestGuide.value, activeHandle, dx, dy))
                         }
                     },
                     onDragEnd = { activeHandle = -1 },
