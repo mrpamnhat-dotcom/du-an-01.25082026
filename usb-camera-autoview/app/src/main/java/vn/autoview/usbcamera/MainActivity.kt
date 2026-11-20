@@ -427,41 +427,39 @@ private fun GuideOverlay(
             a.x + (b.x - a.x) * t,
             a.y + (b.y - a.y) * t
         )
-        val leftFirst = at(lt, lb, guide.firstDivider)
-        val rightFirst = at(rt, rb, guide.firstDivider)
-        val leftSecond = at(lt, lb, guide.secondDivider)
-        val rightSecond = at(rt, rb, guide.secondDivider)
-
-        drawLine(GuideGreen, lt, at(lt, lb, guide.firstDivider), strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideYellow, leftFirst, leftSecond, strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideRed, leftSecond, lb, strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideGreen, rt, at(rt, rb, guide.firstDivider), strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideYellow, rightFirst, rightSecond, strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideRed, rightSecond, rb, strokeWidth = 5f, cap = StrokeCap.Round)
-
-        // All short distance bars share a common Y coordinate, so green/yellow/red remain parallel.
+        // A shared horizontal level is used for each color transition.
+        // Intersections are recalculated on each rail at that exact Y, so
+        // the colored segments and their paired horizontal ticks meet cleanly.
         fun xAtY(a: Offset, b: Offset, y: Float): Float {
             val dy = b.y - a.y
             val t = if (kotlin.math.abs(dy) < 0.001f) 0f else ((y - a.y) / dy).coerceIn(0f, 1f)
             return a.x + (b.x - a.x) * t
         }
         val topY = (lt.y + rt.y) / 2f
+        val firstY = (at(lt, lb, guide.firstDivider).y + at(rt, rb, guide.firstDivider).y) / 2f
+        val secondY = (at(lt, lb, guide.secondDivider).y + at(rt, rb, guide.secondDivider).y) / 2f
+        val leftFirst = Offset(xAtY(lt, lb, firstY), firstY)
+        val rightFirst = Offset(xAtY(rt, rb, firstY), firstY)
+        val leftSecond = Offset(xAtY(lt, lb, secondY), secondY)
+        val rightSecond = Offset(xAtY(rt, rb, secondY), secondY)
+
+        drawLine(GuideGreen, lt, leftFirst, strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideYellow, leftFirst, leftSecond, strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideRed, leftSecond, lb, strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideGreen, rt, rightFirst, strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideYellow, rightFirst, rightSecond, strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideRed, rightSecond, rb, strokeWidth = 5f, cap = StrokeCap.Round)
+
         val leftTopAtY = xAtY(lt, lb, topY)
         val rightTopAtY = xAtY(rt, rb, topY)
         drawLine(GuideGreen, Offset(leftTopAtY, topY), Offset((leftTopAtY + guide.topTickLength * w).coerceAtMost(w), topY), strokeWidth = 5f, cap = StrokeCap.Round)
         drawLine(GuideGreen, Offset(rightTopAtY, topY), Offset((rightTopAtY - guide.topTickLength * w).coerceAtLeast(0f), topY), strokeWidth = 5f, cap = StrokeCap.Round)
 
-        val firstY = (leftFirst.y + rightFirst.y) / 2f
-        val leftFirstX = xAtY(lt, lb, firstY)
-        val rightFirstX = xAtY(rt, rb, firstY)
-        drawLine(GuideYellow, Offset(leftFirstX, firstY), Offset((leftFirstX + guide.dividerTickLength * w).coerceAtMost(w), firstY), strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideYellow, Offset(rightFirstX, firstY), Offset((rightFirstX - guide.dividerTickLength * w).coerceAtLeast(0f), firstY), strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideYellow, leftFirst, Offset((leftFirst.x + guide.dividerTickLength * w).coerceAtMost(w), firstY), strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideYellow, rightFirst, Offset((rightFirst.x - guide.dividerTickLength * w).coerceAtLeast(0f), firstY), strokeWidth = 5f, cap = StrokeCap.Round)
 
-        val secondY = (leftSecond.y + rightSecond.y) / 2f
-        val leftSecondX = xAtY(lt, lb, secondY)
-        val rightSecondX = xAtY(rt, rb, secondY)
-        drawLine(GuideRed, Offset(leftSecondX, secondY), Offset((leftSecondX + guide.dividerTickLength * w).coerceAtMost(w), secondY), strokeWidth = 5f, cap = StrokeCap.Round)
-        drawLine(GuideRed, Offset(rightSecondX, secondY), Offset((rightSecondX - guide.dividerTickLength * w).coerceAtLeast(0f), secondY), strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideRed, leftSecond, Offset((leftSecond.x + guide.dividerTickLength * w).coerceAtMost(w), secondY), strokeWidth = 5f, cap = StrokeCap.Round)
+        drawLine(GuideRed, rightSecond, Offset((rightSecond.x - guide.dividerTickLength * w).coerceAtLeast(0f), secondY), strokeWidth = 5f, cap = StrokeCap.Round)
 
         if (editing) {
             val handles = guideHandles(guide, w, h)
