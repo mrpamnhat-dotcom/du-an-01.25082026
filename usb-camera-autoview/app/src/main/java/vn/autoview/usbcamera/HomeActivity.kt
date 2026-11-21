@@ -36,7 +36,7 @@ class HomeActivity : ComponentActivity() {
     private val homeRoleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { }
-    private var autoLaunchHandled = false
+    private var pairLaunchInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,30 +80,28 @@ class HomeActivity : ComponentActivity() {
     }
 
     private fun startSavedPair() {
-        if (autoLaunchHandled) return
+        if (pairLaunchInProgress) return
         val prefs = getSharedPreferences(HOME_PREFS, MODE_PRIVATE)
         val packageName = prefs.getString(KEY_SELECTED_PACKAGE, null) ?: return
         val externalIntent = packageManager.getLaunchIntentForPackage(packageName) ?: return
-        autoLaunchHandled = true
+        pairLaunchInProgress = true
         try {
             // LAUNCH_ADJACENT asks Android to place the selected app in the
             // neighboring split-screen task. Support depends on device policy.
             externalIntent.addFlags(
-                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT or
-                    Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT
             )
             startActivity(externalIntent)
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     val cameraIntent = Intent(this, MainActivity::class.java).apply {
                         addFlags(
-                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT or
-                                Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT
                         )
                     }
                     startActivity(cameraIntent)
                 } catch (_: Exception) {
-                    autoLaunchHandled = false
+                    pairLaunchInProgress = false
                 }
             }, 700)
         } catch (_: Exception) {
