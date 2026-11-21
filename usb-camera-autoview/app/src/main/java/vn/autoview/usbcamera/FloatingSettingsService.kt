@@ -26,7 +26,7 @@ class FloatingSettingsService : Service() {
             contentDescription = "Mở cài đặt AutoView"
             setOnClickListener {
                 startActivity(Intent(this@FloatingSettingsService, HomeActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     putExtra(HomeActivity.EXTRA_OPEN_SETTINGS, true)
                 })
             }
