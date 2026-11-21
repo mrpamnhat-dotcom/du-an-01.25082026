@@ -101,11 +101,13 @@ class HomeActivity : ComponentActivity() {
                     }
                     startActivity(cameraIntent)
                 } catch (_: Exception) {
-                    pairLaunchInProgress = false
+                    // Allow retry from the Home screen.
+                } finally {
+                    Handler(Looper.getMainLooper()).postDelayed({ pairLaunchInProgress = false }, 1800)
                 }
             }, 700)
         } catch (_: Exception) {
-            autoLaunchHandled = false
+            pairLaunchInProgress = false
         }
     }
 
