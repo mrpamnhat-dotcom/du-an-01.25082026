@@ -88,6 +88,7 @@ class HomeActivity : ComponentActivity() {
         try {
             // LAUNCH_ADJACENT asks Android to place the selected app in the
             // neighboring split-screen task. Support depends on device policy.
+            // The launch guard is released after the camera launch attempt.
             externalIntent.addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_LAUNCH_ADJACENT
             )
