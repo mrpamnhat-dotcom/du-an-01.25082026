@@ -41,7 +41,7 @@ class HomeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
         enterImmersiveMode()
         val prefs = getSharedPreferences(HOME_PREFS, MODE_PRIVATE)
         setContent {
@@ -66,6 +66,9 @@ class HomeActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         enterImmersiveMode()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this)) {
+            runCatching { startService(Intent(this, FloatingSettingsService::class.java)) }
+        }
     }
 
     private fun enableFloatingSettings() {
