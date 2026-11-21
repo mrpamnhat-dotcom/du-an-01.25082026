@@ -33,6 +33,7 @@ private const val KEY_SELECTED_LABEL = "selected_app_label"
 private data class LaunchableApp(val label: String, val packageName: String)
 
 class HomeActivity : ComponentActivity() {
+    companion object { const val EXTRA_OPEN_SETTINGS = "open_autoview_settings" }
     private val homeRoleRequest = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { }
@@ -46,6 +47,8 @@ class HomeActivity : ComponentActivity() {
         setContent {
             AutoViewHome(
                 selectedLabel = prefs.getString(KEY_SELECTED_LABEL, null),
+                initialShowApps = intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false),
+                onEnableFloating = { enableFloatingSettings() },
                 onApps = { loadLaunchableApps() },
                 onSelectApp = { app ->
                     prefs.edit().putString(KEY_SELECTED_PACKAGE, app.packageName)
@@ -63,6 +66,14 @@ class HomeActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         enterImmersiveMode()
+    }
+
+    private fun enableFloatingSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:$packageName")))
+            return
+        }
+        runCatching { startService(Intent(this, FloatingSettingsService::class.java)) }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -141,12 +152,14 @@ class HomeActivity : ComponentActivity() {
 @Composable
 private fun AutoViewHome(
     selectedLabel: String?,
+    initialShowApps: Boolean,
+    onEnableFloating: () -> Unit,
     onApps: () -> List<LaunchableApp>,
     onSelectApp: (LaunchableApp) -> Unit,
     onStartPair: () -> Unit,
     onSetDefaultHome: () -> Unit
 ) {
-    var showApps by remember { mutableStateOf(false) }
+    var showApps by remember { mutableStateOf(initialShowApps) }
     var apps by remember { mutableStateOf(emptyList<LaunchableApp>()) }
     var selected by remember { mutableStateOf(selectedLabel) }
     Surface(Modifier.fillMaxSize(), color = Color(0xFF101820)) {
@@ -159,6 +172,9 @@ private fun AutoViewHome(
                 Column(Modifier.weight(1f)) {
                     Text("USB CAMERA AUTOVIEW", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Text("MÀN HÌNH CHIA ĐÔI TỰ ĐỘNG", color = Color(0xFF9EADB9), fontSize = 12.sp)
+                }
+                TextButton(onClick = onEnableFloating) {
+                    Text("BẬT NÚT CÀI ĐẶT NỔI", color = Color(0xFFB9D8F2))
                 }
                 TextButton(onClick = onSetDefaultHome) {
                     Text("ĐẶT LÀM HOME MẶC ĐỊNH", color = Color(0xFFB9D8F2))
