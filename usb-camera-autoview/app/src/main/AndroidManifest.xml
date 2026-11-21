@@ -18,7 +18,7 @@
             android:name=".HomeActivity"
             android:exported="true"
             android:resizeableActivity="true"
-            android:screenOrientation="landscape"
+            android:screenOrientation="reverseLandscape"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
