@@ -3,6 +3,8 @@ package vn.autoview.usbcamera
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.hardware.usb.UsbManager
+import android.app.Activity
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
@@ -23,6 +25,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -245,8 +249,9 @@ private fun SettingsScreen(
     onGuideChange: (GuideConfig) -> Unit,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxSize().background(Color(0xFF101318)).padding(22.dp),
+        modifier = Modifier.fillMaxSize().background(Color(0xFF101318)).padding(22.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -268,6 +273,9 @@ private fun SettingsScreen(
             }
             Switch(checked = forceLandscape, onCheckedChange = onForceLandscapeChange)
         }
+        Text("CHẨN ĐOÁN THIẾT BỊ", color = Color.White, fontSize = 18.sp)
+        Text("Tạo báo cáo gồm trạng thái camera USB, quyền truy cập, phiên bản ứng dụng và cấu hình màn hình. Báo cáo chỉ được chia sẻ khi bạn bấm nút.", color = Color.LightGray, fontSize = 13.sp)
+        Button(onClick = { shareAutoViewDiagnostics(context) }) { Text("KIỂM TRA VÀ GỬI BÁO CÁO") }
         Text("VẠCH CĂN LÙI", color = Color.White, fontSize = 18.sp)
         Text("Chỉnh bốn góc và hai mức chia. Hai vạch ngang trái/phải luôn nằm cùng cao độ; không có vạch đỏ nối ngang ở cuối.", color = Color.LightGray, fontSize = 13.sp)
         GuideEditor(guide = guide, onGuideChange = onGuideChange)
@@ -356,7 +364,16 @@ private fun CameraDevicePreview(
         return
     }
     if (!rememberIsStarted()) return
-    when (val state = rememberUvcCamera(device)) {
+    val state = rememberUvcCamera(device)
+    LaunchedEffect(device.deviceId, state.toString()) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString("diagnostic_camera_state", when (state) {
+                UvcCameraState.Opening -> "Đang mở camera"
+                is UvcCameraState.Failed -> "Lỗi mở camera: ${state.message}"
+                is UvcCameraState.Ready -> "Camera sẵn sàng"
+            }).putLong("diagnostic_camera_state_time", System.currentTimeMillis()).apply()
+    }
+    when (state) {
         UvcCameraState.Opening -> Text("ĐANG MỞ CAMERA…", color = Color.White)
         is UvcCameraState.Failed -> Text("KHÔNG MỞ ĐƯỢC CAMERA\n${state.message}", color = Color.White)
         is UvcCameraState.Ready -> {
@@ -533,4 +550,41 @@ private fun updateGuideHandle(g: GuideConfig, index: Int, dx: Float, dy: Float):
         6, 7 -> g.copy(secondDivider = (g.secondDivider + dividerDelta).coerceIn(g.firstDivider + 0.08f, 0.88f))
         else -> g
     }
+}
+
+
+/** Báo cáo chỉ được chia sẻ sau thao tác chủ động của người dùng. */
+private fun shareAutoViewDiagnostics(context: Context) {
+    val usbManager = context.getSystemService(Context.USB_SERVICE) as UsbManager
+    val devices = usbManager.deviceList.values
+    val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    val activity = context as? Activity
+    val packageInfo = runCatching { context.packageManager.getPackageInfo(context.packageName, 0) }.getOrNull()
+    val usbLines = if (devices.isEmpty()) "Không phát hiện thiết bị USB" else devices.joinToString("\n") { device ->
+        "USB id=${device.deviceId}, VID=${device.vendorId}, PID=${device.productId}, permission=${usbManager.hasPermission(device)}"
+    }
+    val lastState = prefs.getString("diagnostic_camera_state", "Chưa ghi nhận")
+    val lastTime = prefs.getLong("diagnostic_camera_state_time", 0L)
+    val report = buildString {
+        appendLine("USB CAMERA AUTOVIEW - BÁO CÁO CHẨN ĐOÁN")
+        appendLine("Thời điểm: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
+        appendLine("Ứng dụng: ${packageInfo?.versionName ?: "không rõ"} (${packageInfo?.longVersionCode ?: 0})")
+        appendLine("Thiết bị: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+        appendLine("Android API: ${android.os.Build.VERSION.SDK_INT}")
+        appendLine("Hướng màn hình: ${context.resources.configuration.orientation} (1=dọc, 2=ngang)")
+        appendLine("Multi-window: ${activity?.isInMultiWindowMode ?: "không đọc được"}")
+        appendLine("Quyền cửa sổ nổi: ${if (android.os.Build.VERSION.SDK_INT < 23) true else Settings.canDrawOverlays(context)}")
+        appendLine("Quyền sửa cài đặt hệ thống: ${Settings.System.canWrite(context)}")
+        appendLine("Thiết bị USB:\n$usbLines")
+        appendLine("Trạng thái UVC gần nhất: $lastState")
+        appendLine("Thời điểm trạng thái UVC: ${if (lastTime == 0L) "Chưa có" else java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(lastTime))}")
+        appendLine()
+        appendLine("Giới hạn: ứng dụng không đọc logcat hệ thống và không thể kiểm tra/điều khiển giao diện ứng dụng khác.")
+    }
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "Báo cáo chẩn đoán USB Camera AutoView")
+        putExtra(Intent.EXTRA_TEXT, report)
+    }
+    context.startActivity(Intent.createChooser(send, "Chia sẻ báo cáo chẩn đoán"))
 }
