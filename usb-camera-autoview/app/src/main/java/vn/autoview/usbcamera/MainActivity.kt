@@ -357,6 +357,7 @@ private fun CameraDevicePreview(
     editingGuide: Boolean,
     onGuideChange: (GuideConfig) -> Unit
 ) {
+    val context = LocalContext.current
     val permission = rememberUsbPermission(device)
     if (!permission.granted) {
         LaunchedEffect(device.deviceId) { permission.request() }
@@ -568,7 +569,7 @@ private fun shareAutoViewDiagnostics(context: Context) {
     val report = buildString {
         appendLine("USB CAMERA AUTOVIEW - BÁO CÁO CHẨN ĐOÁN")
         appendLine("Thời điểm: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
-        appendLine("Ứng dụng: ${packageInfo?.versionName ?: "không rõ"} (${packageInfo?.longVersionCode ?: 0})")
+        appendLine("Ứng dụng: ${packageInfo?.versionName ?: "không rõ"} (${packageInfo?.versionCode ?: 0})")
         appendLine("Thiết bị: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
         appendLine("Android API: ${android.os.Build.VERSION.SDK_INT}")
         appendLine("Hướng màn hình: ${context.resources.configuration.orientation} (1=dọc, 2=ngang)")
