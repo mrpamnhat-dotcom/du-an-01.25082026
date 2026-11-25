@@ -48,7 +48,7 @@ class HomeActivity : ComponentActivity() {
         setContent {
             AutoViewHome(
                 selectedLabel = prefs.getString(KEY_SELECTED_LABEL, null),
-                initialShowApps = false,
+                initialShowApps = openSettings,
                 onEnableFloating = { enableFloatingSettings() },
                 onApps = { loadLaunchableApps() },
                 onSelectApp = { app ->
