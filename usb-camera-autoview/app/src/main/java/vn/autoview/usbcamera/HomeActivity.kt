@@ -44,10 +44,11 @@ class HomeActivity : ComponentActivity() {
         requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
         enterImmersiveMode()
         val prefs = getSharedPreferences(HOME_PREFS, MODE_PRIVATE)
+        val openSettings = intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)
         setContent {
             AutoViewHome(
                 selectedLabel = prefs.getString(KEY_SELECTED_LABEL, null),
-                initialShowApps = intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false),
+                initialShowApps = false,
                 onEnableFloating = { enableFloatingSettings() },
                 onApps = { loadLaunchableApps() },
                 onSelectApp = { app ->
@@ -58,7 +59,9 @@ class HomeActivity : ComponentActivity() {
                 onSetDefaultHome = { requestDefaultHome() }
             )
         }
-        if (savedInstanceState == null) {
+        // Opening the floating gear is a settings visit, not a fresh boot.
+        // Do not auto-launch the selected app and camera over the settings screen.
+        if (savedInstanceState == null && !openSettings) {
             Handler(Looper.getMainLooper()).postDelayed({ startSavedPair() }, 900)
         }
     }
